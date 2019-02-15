@@ -6,6 +6,7 @@ Created on 2017-2-22
 @author: xiewei
 '''
 import os
+import sys
 try:
     from collections import OrderedDict
 except ImportError:
@@ -21,6 +22,35 @@ src_field_pattern = re.compile(r'^(?P<key>Package|Version|Directory): (?P<value>
 source_version_pattern = re.compile(r'(.+) \((.+)\)')
 files_pattern = re.compile(r'^ (\w{32})\s+(\d+) (.+)', re.M)
 dependency_pattern = re.compile(r'\s*(\S+) \((\S+) (\S+)\)')
+
+# cmp mixin
+PY3 = sys.version_info[0] >= 3
+if PY3:
+    def cmp(a, b):
+        return (a > b) - (a < b)
+    # mixin class for Python3 supporting __cmp__
+
+    class PY3__cmp__:
+        def __eq__(self, other):
+            return self.__cmp__(other) == 0
+
+        def __ne__(self, other):
+            return self.__cmp__(other) != 0
+
+        def __gt__(self, other):
+            return self.__cmp__(other) > 0
+
+        def __lt__(self, other):
+            return self.__cmp__(other) < 0
+
+        def __ge__(self, other):
+            return self.__cmp__(other) >= 0
+
+        def __le__(self, other):
+            return self.__cmp__(other) <= 0
+else:
+    class PY3__cmp__:
+        pass
 
 
 class Release(object):
@@ -41,7 +71,8 @@ class Release(object):
         for k, v in re.findall(r'(\w+): ?(.+$)', self.content, re.M):
             self.data[k] = v
 
-        self.files = [fileinfo[2] for fileinfo in re.findall(files_pattern, self.content)]
+        self.files = [fileinfo[2]
+                      for fileinfo in re.findall(files_pattern, self.content)]
 
         return
 
@@ -168,16 +199,19 @@ class Packages(object):
         根据Packages生成Packages.gz,Packages.bz2
         """
         if not content:
-            with open(packagesfile) as f:
+            with open(packagesfile,'rb') as f:
                 content = f.read()
         # gz and bz2
         import gzip
-        zfile = gzip.open(packagesfile + '.gz', mode='w')
+        zfile = gzip.open(packagesfile + '.gz', mode='wb')
         zfile.write(content)
         zfile.close()
         import bz2
-        with open(packagesfile + '.bz2', 'w') as f:
-            f.write(bz2.compress(content))
+        bzfile = bz2.BZ2File(packagesfile+'.bz2','wb')
+        bzfile.write(content)
+        bzfile.close()
+        # with open(packagesfile + '.bz2', 'w') as f:
+            # f.write(bz2.compress(content.encode('utf-8')).encode('utf-8'))
         return
 
     def write(self, newpath=None, backup=''):
@@ -205,7 +239,7 @@ class Packages(object):
         return self.data.itervalues()
 
 
-class Package(object):
+class Package( PY3__cmp__,object):
     """
     Packages 文件中的单个记录
     """
@@ -251,7 +285,7 @@ class Package(object):
     @property
     def filename(self):
         return self.data['Filename']
-    
+
     @property
     def md5sum(self):
         return self.data['MD5sum']
@@ -339,7 +373,7 @@ class Source(Package):
         return 'src'
 
 
-class Version(object):
+class Version(PY3__cmp__,object):
     def __init__(self, value):
         self.version = value
 
@@ -353,6 +387,7 @@ class Version(object):
         except:
             other_version = str(other)
         return apt.apt_pkg.version_compare(self.version, other_version)
+
 
 def strip_packages(packagesfile):
     """

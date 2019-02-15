@@ -1,5 +1,7 @@
 # coding:utf-8
 
+from __future__ import print_function
+
 '''
 Created on 2018-12-05
 
@@ -68,10 +70,10 @@ def check(topdir):
 
     # 对比
     for filepath in set(pool_files) - set(keep_list):
-        print '+', filepath
+        print('+', filepath)
 
     for filepath in set(keep_list) - set(pool_files):
-        print '-', filepath
+        print('-', filepath)
 
     logger.info('检查完成')
     return True

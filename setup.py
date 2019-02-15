@@ -19,6 +19,7 @@ setuptools.setup(
     license='GPLv2',
     classifiers=[
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
         'License :: OSI Approved :: GNU General Public License v2 (GPLv2)',
         'Operating System :: POSIX :: Linux',
     ],

@@ -9,8 +9,8 @@ import os
 import sys
 from ..contrib import gnupg
 from ..contrib import docopt
-import config
-import logging
+from . import config
+from . import logging
 
 logger = logging.getLogger('archive_man')
 
@@ -57,7 +57,7 @@ def sign_file(filepath, password=None, restrict=False):
             logger.warning(error_str, release_file)
             return 1
 
-    data = open(release_file, 'r').read()
+    data = open(release_file, 'rb').read()
     if password is None:
         password = config.GPGKEYPASS
     result = gpg.sign(data, passphrase=password,
@@ -65,7 +65,7 @@ def sign_file(filepath, password=None, restrict=False):
                       algo='sha512'
                       )
     assert result.data, result.stderr
-    with open(os.path.join(filepath, 'In' + fn), 'w') as f:
+    with open(os.path.join(filepath, 'In' + fn), 'wb') as f:
         f.write(result.data)
 
     result = gpg.sign(data, passphrase=password,

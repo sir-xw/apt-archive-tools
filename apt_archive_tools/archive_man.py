@@ -18,7 +18,7 @@ archive_man is a manage tool of APT software archives
 from __future__ import print_function
 import os
 import sys
-from contrib import docopt
+from .contrib import docopt
 
 __all__ = []
 
@@ -67,7 +67,7 @@ Command list:
         for entry_point in pkg_resources.iter_entry_points('apt_archive_tools.commands'):
             commands[entry_point.name] = entry_point.load()
 
-    for c, f in commands.iteritems():
+    for c, f in commands.items():
         cmd_doc = cmd_doc + '   ' + c + '\n\t' + \
             (f.__doc__ or 'No description').strip() + '\n'
 

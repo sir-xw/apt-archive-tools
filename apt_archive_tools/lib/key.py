@@ -1,4 +1,7 @@
 # encoding: utf-8
+
+from __future__ import print_function
+
 '''
 Created on 2016-6-14
 
@@ -9,8 +12,8 @@ import os
 import sys
 from ..contrib import gnupg
 from ..contrib import docopt
-import config
-import logging
+from . import config
+from . import logging
 
 logger = logging.getLogger('archive_man')
 
@@ -52,7 +55,7 @@ def list_key():
     gpg = gnupg.GPG(gnupghome=config.GPGHOME)
     result = gpg.list_keys(secret=True)
     for secret in result:
-        print secret['fingerprint'], ', '.join(secret['uids'])
+        print(secret['fingerprint'], ', '.join(secret['uids']))
 
 
 def main(argv=None):

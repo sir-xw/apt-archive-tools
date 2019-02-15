@@ -78,7 +78,8 @@ def merge(topdir, froms, target, policy='version', binary=False):
                     continue
                 this_versions[key] = pkg.version
         # 然后按照指定策略更新至 best_version
-        for key, version in this_versions.iteritems():
+        for key in this_versions:
+            version = this_versions[key]
             old_version = best_versions.get(key, '')
             if policy == 'version':
                 if utils.Version(version) <= old_version:

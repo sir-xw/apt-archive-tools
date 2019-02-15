@@ -5,7 +5,10 @@ Created on 2016-6-14
 '''
 
 import os
-from ConfigParser import SafeConfigParser
+try:
+    from ConfigParser import SafeConfigParser
+except ImportError:
+    from configparser import SafeConfigParser
 
 conf = SafeConfigParser()
 conf.read([os.path.join(os.path.dirname(__file__), 'default.conf'),

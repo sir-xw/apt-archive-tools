@@ -47,7 +47,7 @@ def _init_config(data):
     basedir = data['destdir']
     confdir = os.path.join(basedir, 'conf')
     try:
-        os.makedirs(confdir, mode=0775)
+        os.makedirs(confdir, mode=0o775)
     except:
         pass
     if not os.path.isdir(confdir):

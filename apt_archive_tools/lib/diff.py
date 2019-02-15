@@ -1,5 +1,7 @@
 # coding:utf-8
 
+from __future__ import print_function
+
 '''
 Created on 2017-2-22
 
@@ -62,9 +64,9 @@ def diff(dist1, dist2, method='source', listfile=False, compare=False):
     # 输出对比结果
     for pkgname in set(versions1.keys()) - set(versions2.keys()):
         if listfile:
-            print pkgname, ',', filepath(versions1[pkgname])
+            print(pkgname, ',', filepath(versions1[pkgname]))
         else:
-            print pkgname, ',', versions1[pkgname].version
+            print(pkgname, ',', versions1[pkgname].version)
     for pkgname in set(versions1.keys()) & set(versions2.keys()):
         cmp_res = versions1[pkgname].__cmp__(versions2[pkgname])
         if compare:
@@ -74,19 +76,19 @@ def diff(dist1, dist2, method='source', listfile=False, compare=False):
                 cmp_char = '<'
             else:
                 cmp_char = '>'
-            print pkgname, ',', versions1[pkgname].version, ',', \
-                cmp_char, ',', versions2[pkgname].version
+            print(pkgname, ',', versions1[pkgname].version, ',',
+                  cmp_char, ',', versions2[pkgname].version)
         elif cmp_res == 0:
             continue
         elif listfile:
-            print pkgname, ',', filepath(versions1[pkgname]), ',', filepath(versions2[pkgname])
+            print(pkgname, ',', filepath(versions1[pkgname]), ',', filepath(versions2[pkgname]))
         else:
-            print pkgname, ', ,', versions1[pkgname].version, ',', versions2[pkgname].version
+            print(pkgname, ', ,', versions1[pkgname].version, ',', versions2[pkgname].version)
     for pkgname in set(versions2.keys()) - set(versions1.keys()):
         if listfile:
-            print pkgname, ', ,', filepath(versions2[pkgname])
+            print(pkgname, ', ,', filepath(versions2[pkgname]))
         else:
-            print pkgname, ', , ,', versions2[pkgname].version
+            print(pkgname, ', , ,', versions2[pkgname].version)
 
     logger.info('比较完成')
     return 0
@@ -115,7 +117,7 @@ def diff_md5(archive1, archive2):
         md5_1 = hash_table1[fn]
         md5_2 = hash_table2[fn]
         if md5_1 != md5_2:
-            print fn, ',', md5_1, ',', md5_2
+            print(fn, ',', md5_1, ',', md5_2)
 
     return 0
 

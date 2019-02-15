@@ -27,7 +27,7 @@ def copy_archive(source, dest):
     if not os.path.isdir(os.path.join(source, 'pool')):
         logger.error(u'源目录不是一个软件源')
         return 1
-    os.makedirs(dest, mode=0755)
+    os.makedirs(dest, mode=0o755)
     # copy files
     for sub in os.listdir(source):
         result = os.system('cp -ar %s "%s" "%s"' % ('-l' if sub == 'pool' else '',
