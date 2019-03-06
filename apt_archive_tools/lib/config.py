@@ -20,9 +20,7 @@ GPGHOME = os.path.expanduser(conf.get('app', 'gpghome'))
 GPGKEYPASS = conf.get('app', 'gpgpass')
 
 options = {'suite': conf.get('options', 'suite'),
-           'arch': conf.get('options', 'arch'),
-           'archive': os.path.abspath(os.path.expanduser(conf.get('options', 'archive'))),
-           'srvdir': os.path.abspath(os.path.expanduser(conf.get('options', 'srvdir')))
+           'arch': conf.get('options', 'arch')
            }
 
 
