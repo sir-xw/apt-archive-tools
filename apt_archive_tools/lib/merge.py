@@ -38,7 +38,7 @@ import logging
 logger = logging.getLogger('archive_man')
 
 
-def merge(topdir, froms, target, policy='version', binary=False):
+def merge(topdir, froms, target, policy='version', binary=False, force=False):
     """
     合并多个系列中的Packages与Sources索引
 
@@ -54,7 +54,7 @@ def merge(topdir, froms, target, policy='version', binary=False):
     source_releases = [utils.Release.parse(os.path.join(
         topdir, series, 'Release')) for series in froms]
     # check target
-    if os.path.exists(os.path.join(topdir, target)):
+    if os.path.exists(os.path.join(topdir, target)) and not force:
         logger.error('合并目标 "%s" 已存在' % target)
         return False
 
@@ -135,6 +135,7 @@ def main(argv=None):
           froms=[args['<source1>']] + args['<source2>'],
           target=args['--target'],
           policy=args['--policy'],
-          binary=args['--binary']
+          binary=args['--binary'],
+          force=args['--force']
           )
     return 0
