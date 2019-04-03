@@ -91,10 +91,10 @@ def strip(topdir, backup, index, dryrun=False):
                     new.write()
                     release_changed = True
 
-    # update Release
-    if release_changed:
-        logger.debug('Rewriting Release file: %s', release_file)
-        release.write()
+        # update Release
+        if release_changed:
+            logger.debug('Rewriting Release file: %s', release_file)
+            release.write()
 
     # 开始删除或移动
     for filepath in pool_files - keep_list:
