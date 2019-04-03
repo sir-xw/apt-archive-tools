@@ -84,50 +84,44 @@ class Release(object):
 
     @property
     def all_packages(self):
-        if not self.packages_files:
-            for fn in self.files:
-                if os.path.basename(fn) == 'Packages':
-                    fpath = os.path.join(os.path.dirname(self.filepath), fn)
-                    if not os.path.isfile(fpath):
-                        # 已经删除了的索引文件就不要管了
-                        continue
-                    packages = Packages.parse(fpath)
-                    self.packages_files[fn] = packages
-        if not self.packages_files:
-            # gzipped
-            for fn in self.files:
-                if os.path.basename(fn) == 'Packages.gz':
-                    fpath = os.path.join(os.path.dirname(self.filepath), fn)
-                    if not os.path.isfile(fpath):
-                        # 已经删除了的索引文件就不要管了
-                        continue
-                    packages = Packages.parse(fpath)
-                    self.packages_files[fn.rsplit('.', 1)[0]] = packages
-
+        self.load_index('Packages')
         return self.packages_files
 
     @property
     def all_sources(self):
-        if not self.sources_files:
-            for fn in self.files:
-                if os.path.basename(fn) == 'Sources':
-                    fpath = os.path.join(os.path.dirname(self.filepath), fn)
-                    if not os.path.isfile(fpath):
-                        # 已经删除了的索引文件就不要管了
-                        continue
-                    sources = Sources.parse(fpath)
-                    self.sources_files[fn] = sources
-        if not self.sources_files:
-            # gzipped
-            for fn in self.files:
-                if os.path.basename(fn) == 'Sources.gz':
-                    fpath = os.path.join(os.path.dirname(self.filepath), fn)
-                    if not os.path.isfile(fpath):
-                        # 已经删除了的索引文件就不要管了
-                        continue
-                    sources = Sources.parse(fpath)
-                    self.sources_files[fn.rsplit('.', 1)[0]] = sources
+        self.load_index('Sources')
         return self.sources_files
+
+    def load_index(self, name='Packages'):
+        if name == 'Packages':
+            index_list = self.packages_files
+            index_class = Packages
+        elif name == 'Sources':
+            index_list = self.sources_files
+            index_class = Sources
+        else:
+            raise NotImplementedError()
+
+        if index_list:
+            return
+        for fn in self.files:
+            if os.path.basename(fn) == name:
+                fpath = os.path.join(os.path.dirname(self.filepath), fn)
+            elif os.path.basename(fn) == name + '.gz':
+                # gzipped
+                fpath = os.path.join(os.path.dirname(self.filepath), fn)
+                fn = fn.rsplit('.', 1)[0]
+            else:
+                continue
+
+            if fn in index_list:
+                # 已经统计的
+                continue
+            if not os.path.isfile(fpath):
+                # 已经删除了的索引文件就不要管了
+                continue
+            index_list[fn] = index_class.parse(fpath)
+        return
 
     def write(self):
         conf = 'APT::FTPArchive::Release {'
@@ -199,7 +193,7 @@ class Packages(object):
         根据Packages生成Packages.gz,Packages.bz2
         """
         if not content:
-            with open(packagesfile,'rb') as f:
+            with open(packagesfile, 'rb') as f:
                 content = f.read()
         # gz and bz2
         import gzip
@@ -207,11 +201,11 @@ class Packages(object):
         zfile.write(content)
         zfile.close()
         import bz2
-        bzfile = bz2.BZ2File(packagesfile+'.bz2','wb')
+        bzfile = bz2.BZ2File(packagesfile + '.bz2', 'wb')
         bzfile.write(content)
         bzfile.close()
         # with open(packagesfile + '.bz2', 'w') as f:
-            # f.write(bz2.compress(content.encode('utf-8')).encode('utf-8'))
+        # f.write(bz2.compress(content.encode('utf-8')).encode('utf-8'))
         return
 
     def write(self, newpath=None, backup=''):
@@ -239,7 +233,7 @@ class Packages(object):
         return self.data.itervalues()
 
 
-class Package( PY3__cmp__,object):
+class Package(PY3__cmp__, object):
     """
     Packages 文件中的单个记录
     """
@@ -373,7 +367,7 @@ class Source(Package):
         return 'src'
 
 
-class Version(PY3__cmp__,object):
+class Version(PY3__cmp__, object):
     def __init__(self, value):
         self.version = value
 
