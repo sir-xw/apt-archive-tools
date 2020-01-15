@@ -90,10 +90,10 @@ def rename(topdir, pairs, file=False):
                 packages.write()
                 release_changed = True
 
-    # update Release
-    if release_changed:
-        logger.debug('Rewriting Release file: %s', release_file)
-        release.write()
+        # update Release
+        if release_changed:
+            logger.debug('Rewriting Release file: %s', release_file)
+            release.write()
     return 0
 
 
