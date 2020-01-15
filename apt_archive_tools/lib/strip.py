@@ -110,7 +110,10 @@ def strip(topdir, backup, index, dryrun=False):
             assert os.system(cmd) == 0
         else:
             logger.debug('Removing: %s', filepath)
-            os.remove(filepath)
+            try:
+                os.remove(filepath)
+            except:
+                logger.error('remove failed: %s', filepath)
 
     if dryrun:
         logger.info('测试模式完成，没有改动任何文件')
