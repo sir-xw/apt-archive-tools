@@ -175,6 +175,13 @@ class Packages(object):
 
     def __init__(self, filepath):
         self.filepath = filepath
+        match = re.search(r'binary-(.*)/Packages', self.filepath)
+        if match:
+            self.arch = match.groups[0]
+        elif re.search('source/Sources', self.filepath):
+            self.arch = 'src'
+        else:
+            self.arch = ''
         self.data = {}
 
     def _parse(self):

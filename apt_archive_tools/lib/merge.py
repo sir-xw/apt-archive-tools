@@ -32,6 +32,7 @@ options:
 import os
 from ..contrib import docopt
 from . import utils
+import re
 
 import logging
 
@@ -58,9 +59,9 @@ def merge(topdir, froms, target, policy='version', binary=False, force=False):
         logger.error('合并目标 "%s" 已存在' % target)
         return False
 
-    def pkg_key(pkg):
+    def pkg_key(pkg, packages_arch):
         if binary:
-            return pkg.name + ',' + pkg.arch
+            return pkg.name + ',' + pkg.arch + ',' + packages_arch
         else:
             return pkg.source
 
@@ -72,7 +73,7 @@ def merge(topdir, froms, target, policy='version', binary=False, force=False):
         # 同一个系列中先确定最高版本
         for packages in release.all_packages.values() + release.all_sources.values():
             for pkg in packages:
-                key = pkg_key(pkg)
+                key = pkg_key(pkg, packages.arch)
                 old_version = this_versions.get(key, '')
                 if pkg <= old_version:
                     continue
@@ -107,7 +108,7 @@ def merge(topdir, froms, target, policy='version', binary=False, force=False):
     for release in source_releases:
         for fn, packages in release.all_packages.items() + release.all_sources.items():
             for pkg in packages:
-                if pkg == best_versions[pkg_key(pkg)]:
+                if pkg == best_versions[pkg_key(pkg, packages.arch)]:
                     new_packages[fn][pkg.name] = pkg
 
     # 保存Packages文件
