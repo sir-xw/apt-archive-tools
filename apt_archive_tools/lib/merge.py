@@ -118,7 +118,7 @@ def merge(topdir, froms, target, policy='version', binary=False, force=False):
     logger.info('生成合并后的Release文件')
     new_release = utils.Release(os.path.join(topdir, target, 'Release'))
     for release in source_releases:
-        new_release.data.update(release.data)
+        new_release.merge_data(release.data)
     new_release.data['Suite'] = target
     new_release.write()
     logger.info('合并完成')

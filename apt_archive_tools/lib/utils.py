@@ -120,7 +120,8 @@ class Release(object):
             if not os.path.isfile(fpath):
                 # 已经删除了的索引文件就不要管了
                 continue
-            index_list[fn] = index_class.parse(fpath)
+            if os.path.exists(fpath):
+                index_list[fn] = index_class.parse(fpath)
         return
 
     def write(self):
@@ -151,6 +152,20 @@ class Release(object):
         from .sign import sign_file
         sign_file(topdir)
         return
+
+    def merge_data(self, other_data):
+        """
+        merge release data to current
+        """
+        # special: Components, Architectures
+        for key in other_data:
+            other_value = other_data.get(key, '')
+            if key in ['Components', 'Architectures']:
+                new_set = set(self.data.get(key, '').split()
+                              ) | set(other_value.split())
+                self.data[key] = ' '.join(new_set)
+            else:
+                self.data[key] = other_value
 
 
 class Packages(object):
