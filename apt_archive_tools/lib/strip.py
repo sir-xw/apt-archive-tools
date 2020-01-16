@@ -8,7 +8,7 @@ Created on 2017-03-24
 
 cmd_doc = """
 从软件源中删除已经不在dists索引里的包，减少其占用空间
-Usage: archive_man strip <dir> [-b <backupdir>] [-d] [-i]
+Usage: archive_man strip <dir> [-b <backupdir>] [-d] [-i] [-p <pattern>...] [-f <pattern-file>]
 
 dir: 软件源目录，里面应该有dists和软件包目录（通常取名为pool）
 
@@ -17,11 +17,15 @@ options:
    -d, --dry                   提示哪些文件会被删除，但并不执行
    -h, --help                  show this help
    -i, --index                 双向删除：同时会将已经不存在于pool中的包从索引中删除
+   -p, --pattern=<pattern>     额外将路径匹配pattern的软件包删除
+   -f, --from-file=<pattern-file>
+                               从文件中读取pattern
 
 """
 
 import os
 import glob
+import re
 from ..contrib import docopt
 from . import utils
 
@@ -30,7 +34,7 @@ import logging
 logger = logging.getLogger('archive_man')
 
 
-def strip(topdir, backup, index, dryrun=False):
+def strip(topdir, backup, index, dryrun=False, pattern=None):
     """
     从软件源中删除已经不在dists索引里的包
     """
@@ -68,6 +72,13 @@ def strip(topdir, backup, index, dryrun=False):
                     file_list = [package.filename]
                 for filename in file_list:
                     package_abs_path = os.path.join(topdir, filename)
+                    if pattern and pattern.search(filename):
+                        logger.debug('Matched file: %s', filename)
+                        if index:
+                            logger.debug('Remove %s from %s',
+                                            package.name, packages.filepath)
+                            changed = True
+                        break
                     if index:
                         if package_abs_path in pool_files:
                             new[package.name] = package
@@ -134,8 +145,24 @@ def main(argv=None):
     else:
         backupdir = os.path.abspath(backup)
 
+    patterns = set(args['--pattern'])
+    pattern_file = args['--from-file']
+    if pattern_file:
+        if not os.path.isfile(pattern_file):
+            logger.error('pattern 文件 "%s" 不存在', pattern_file)
+            return 1
+        with open(pattern_file) as f:
+            for pattern in f.read().split('\n'):
+                if not pattern.strip():
+                    continue
+                if pattern.startswith('#'):
+                    continue
+                patterns.add(pattern)
+
     return strip(topdir=os.path.abspath(args['<dir>']),
-          backup=backupdir,
-          index=args['--index'],
-          dryrun=args['--dry']
-          )
+                 backup=backupdir,
+                 index=args['--index'],
+                 dryrun=args['--dry'],
+                 pattern=re.compile(
+                     '|'.join('(%s)' % p for p in patterns)) if patterns else None
+                 )
