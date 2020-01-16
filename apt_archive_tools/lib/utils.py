@@ -177,7 +177,7 @@ class Packages(object):
         self.filepath = filepath
         match = re.search(r'binary-(.*)/Packages', self.filepath)
         if match:
-            self.arch = match.groups[0]
+            self.arch = match.groups()[0]
         elif re.search('source/Sources', self.filepath):
             self.arch = 'src'
         else:
@@ -226,8 +226,6 @@ class Packages(object):
         bzfile = bz2.BZ2File(packagesfile + '.bz2', 'wb')
         bzfile.write(content)
         bzfile.close()
-        # with open(packagesfile + '.bz2', 'w') as f:
-        # f.write(bz2.compress(content.encode('utf-8')).encode('utf-8'))
         return
 
     def write(self, newpath=None, backup=''):
