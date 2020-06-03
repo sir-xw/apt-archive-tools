@@ -53,6 +53,18 @@ else:
         pass
 
 
+def read_url(url):
+    if url.startswith('file://'):
+        url = url[7:]
+    if '://' not in url:
+        # as file
+        return open(url).read()
+    else:
+        import urllib
+        f = urllib.urlopen(url)
+        return f.read()
+
+
 class Release(object):
     """
     Release文件的内容，提供读取、保存等功能
@@ -66,8 +78,7 @@ class Release(object):
         self.sources_files = {}
 
     def _parse(self):
-        with open(self.filepath) as f:
-            self.content = f.read()
+        self.content = read_url(self.filepath)
         for k, v in re.findall(r'(\w+): ?(.+$)', self.content, re.M):
             self.data[k] = v
 
@@ -410,3 +421,20 @@ def strip_packages(packagesfile):
     packages = Packages.parse(packagesfile)
     packages.write()
     return
+
+
+def file_hash(filepath, hash_name='md5'):
+    import hashlib
+    h = hashlib.new(hash_name)
+    f = open(filepath, 'r')
+    while True:
+        # 每次读取1M放到 data 中
+        data = f.read(1024 * 1024)
+        size = len(data)
+        if not size:
+            # 数据流已经读取完毕
+            break
+        # 校验器校验一下
+        h.update(data)
+    f.close()
+    return h.hexdigest()
