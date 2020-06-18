@@ -261,7 +261,8 @@ class Packages(object):
         return self.data[key]
 
     def __iter__(self):
-        return self.data.itervalues()
+        for v in self.data.values():
+            yield v
 
 
 class Package(PY3__cmp__, object):
