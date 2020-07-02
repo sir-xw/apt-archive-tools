@@ -48,6 +48,9 @@ if PY3:
 
         def __le__(self, other):
             return self.__cmp__(other) <= 0
+
+        def __cmp__(self, other):
+            return cmp(self, other)
 else:
     class PY3__cmp__:
         pass
@@ -60,7 +63,10 @@ def read_url(url):
         # as file
         return open(url).read()
     else:
-        import urllib
+        if PY3:
+            import urllib.request as urllib
+        else:
+            import urllib
         f = urllib.urlopen(url)
         return f.read()
 
