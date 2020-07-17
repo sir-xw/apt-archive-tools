@@ -109,7 +109,7 @@ tree "%(DISTS)s/%(DISTRORELEASEONDISK)s"
     Packages::Extensions "%(EXTENSIONS)s";
     Packages::Compress "%(COMPRESSORS)s";
     Sources::Compress "%(COMPRESSORS)s";
-    Contents::Compress "gzip";
+    Contents::Compress ". gzip";
     Translation::Compress "%(COMPRESSORS)s";
     BinCacheDB "packages%(CACHEINSERT)s-$(ARCH).db";
     SrcCacheDB "sources%(CACHEINSERT)s.db";

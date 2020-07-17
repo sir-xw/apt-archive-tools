@@ -11,6 +11,7 @@ try:
     from collections import OrderedDict
 except ImportError:
     from ordereddict import OrderedDict
+from collections import defaultdict
 
 import re
 pkg_fields = ['Package', 'Version', 'Architecture', 'Source',
@@ -82,6 +83,7 @@ class Release(object):
         self.files = []
         self.packages_files = {}
         self.sources_files = {}
+        self.contents_files = {}
 
     def _parse(self):
         self.content = read_url(self.filepath)
@@ -109,25 +111,38 @@ class Release(object):
         self.load_index('Sources')
         return self.sources_files
 
+    @property
+    def all_contents(self):
+        self.load_index('Contents')
+        return self.contents_files
+
     def load_index(self, name='Packages'):
         if name == 'Packages':
             index_list = self.packages_files
+            pattern = re.compile(r'^Packages(\.gz){0,1}$')
             index_class = Packages
         elif name == 'Sources':
             index_list = self.sources_files
+            pattern = re.compile(r'^Sources(\.gz){0,1}$')
             index_class = Sources
+        elif name == 'Contents':
+            index_list = self.contents_files
+            pattern = re.compile(r'^Contents-\w+(\.gz){0,1}$')
+            index_class = Contents
         else:
             raise NotImplementedError()
 
         if index_list:
             return
         for fn in self.files:
-            if os.path.basename(fn) == name:
-                fpath = os.path.join(os.path.dirname(self.filepath), fn)
-            elif os.path.basename(fn) == name + '.gz':
-                # gzipped
-                fpath = os.path.join(os.path.dirname(self.filepath), fn)
-                fn = fn.rsplit('.', 1)[0]
+            match = pattern.match(os.path.basename(fn))
+            if match:
+                if match.groups()[0] == '.gz':
+                    # gzipped
+                    fpath = os.path.join(os.path.dirname(self.filepath), fn)
+                    fn = fn.rsplit('.', 1)[0]
+                else:
+                    fpath = os.path.join(os.path.dirname(self.filepath), fn)
             else:
                 continue
 
@@ -159,7 +174,7 @@ class Release(object):
         os.system(
             'rm -f "%(top)s"/InRelease "%(top)s"/Release.gpg "%(top)s"/Release' % {'top': topdir})
 
-        content = os.popen('apt-ftparchive -c %(conf)s release %(top)s' % {'conf': tmpconf,
+        content = os.popen('apt-ftparchive -c %(conf)s release %(top)s --contents' % {'conf': tmpconf,
                                                                            'top': topdir
                                                                            }
                            ).read()
@@ -419,6 +434,105 @@ class Version(PY3__cmp__, object):
         except:
             other_version = str(other)
         return apt.apt_pkg.version_compare(self.version, other_version)
+
+
+class Contents(object):
+    """parse Contents file"""
+
+    def __init__(self, filepath, arch=''):
+        """
+        filepath like [path-to]/Contents-[arch]
+        """
+        self.filepath = filepath
+        self.packages = defaultdict(list)
+        self.package_fullnames = {}  # busybox -> utils/busybox
+        self.files = defaultdict(set)
+        self.arch = arch or os.path.splitext(filepath)[0].split('-')[-1]
+
+    @staticmethod
+    def parse(contents_file):
+        obj = Contents(contents_file)
+        obj._parse()
+        return obj
+
+    @staticmethod
+    def parse_package_name(packages):
+        """
+        utils/busybox,shells/busybox-static -> ['busybox', 'busybox-static']
+        """
+        return [p.split('/')[-1] for p in packages.split(',')]
+
+    def _parse(self):
+        if self.filepath.endswith('.gz'):
+            import gzip
+            f = gzip.open(self.filepath)
+            self.filepath = self.filepath.rsplit('.', 1)[0]
+        else:
+            f = open(self.filepath)
+        lines = f.read().strip('\n').split('\n')
+        for line in lines:
+            self._parse_line(line)
+        f.close()
+
+    def _parse_line(self, line):
+        """
+        导入Contents文件中的一行数据
+        """
+        filename, packages = line.rsplit(None, 1)
+        for package in packages.split(','):
+            self.files[filename].add(package)
+            package_name = package.split('/')[-1]
+            self.package_fullnames[package_name] = package
+            self.packages[package_name].append(filename)
+
+    def write(self, newpath=None, backup=''):
+        """
+        文件-包的对应关系列表写入Contents，并生成Contents.gz
+        """
+        filepath = newpath or self.filepath
+        # create a origin backup
+        if backup and os.path.exists(filepath):
+            os.rename(filepath, filepath + '.' + backup)
+        # write new
+        with open(filepath, 'w') as f:
+            for filename in sorted(self.files.keys()):
+                packages = self.files[filename]
+                f.write(filename + '\t' * 5 + ','.join(packages) + '\n')
+        self.zip_contents(filepath)
+        os.unlink(filepath)
+
+    @staticmethod
+    def zip_contents(contents_file, content=None):
+        """
+        根据Contents生成Contents.gz
+        """
+        if not content:
+            with open(contents_file, 'rb') as f:
+                content = f.read()
+        # gz and bz2
+        import gzip
+        zfile = gzip.open(contents_file + '.gz', mode='wb')
+        zfile.write(content)
+        zfile.close()
+
+    def remove_package(self, package):
+        file_list = self.packages.pop(package)
+        package_fullname = self.package_fullnames[package]
+        for filename in file_list:
+            self.files[filename].remove(package_fullname)
+
+    def remove_file(self, filename):
+        packages = self.files.pop(filename)
+        for package in packages:
+            package_name = package.split('/')[-1]
+            self.packages[package_name].remove(filename)
+
+    def add_package(self, package, file_list):
+        package_name = package.split('/')[-1]
+        self.package_fullnames[package_name] = package
+        self.packages[package_name] = file_list
+        for file_name in file_list:
+            self.files[file_name].add(package)
 
 
 def strip_packages(packagesfile):

@@ -7,7 +7,7 @@ Created on 2017-2-22
 '''
 
 cmd_doc = """
-Usage: archive_man merge [-d <topdir>] [-p <policy>] <source1> <source2>... -t <target> [-f] [-b]
+Usage: archive_man merge [-d <topdir>] [-p <policy>] <source1> <source2>... -t <target> [-f] [-b] [-c]
 
 source1: 第一个合并来源，应该是topdir中已存在的目录名
 source2: 第二个合并来源，应该是topdir中已存在的目录名
@@ -18,6 +18,7 @@ options:
    -p, --policy=<policy>    合并策略，默认取版本号最高 [default: version]
    -b, --binary             二进制包以包名而非source来判断是否同名包，这可以保留由不同版本source编译出的不同名称的包。
    -t, --target=<target>    合并后的系列名，注意如果是已存在的系列，里面的内容将会被替换（需要带 -f 选项）。
+   -c, --contents           同时合并Contents文件
    -f, --force              如果目标系列已存在则会覆盖
    -h, --help               show this help
 
@@ -39,7 +40,7 @@ import logging
 logger = logging.getLogger('archive_man')
 
 
-def merge(topdir, froms, target, policy='version', binary=False, force=False):
+def merge(topdir, froms, target, policy='version', binary=False, force=False, with_contents=False):
     """
     合并多个系列中的Packages与Sources索引
 
@@ -102,18 +103,47 @@ def merge(topdir, froms, target, policy='version', binary=False, force=False):
                     pass
             if fn not in new_packages:
                 new_packages[fn] = utils.Packages(newpath)
+    # 准备新dist中的Contents
+    new_contents = {}
+    if with_contents:
+        for release in source_releases:
+            for fn in release.all_contents.keys():
+                newpath = os.path.join(topdir, target, fn)
+                if not os.path.exists(newpath):
+                    try:
+                        os.makedirs(os.path.dirname(newpath))
+                    except:
+                        pass
+                if fn not in new_contents:
+                    new_contents[fn] = utils.Contents(newpath)
 
-    # 把选中的包填入对应的Packages中
-    logger.info('生成合并后的Packages与Sources文件')
+    # 把选中的包填入对应的Packages中，同时填充对应体系的Contents
+    logger.info('生成合并后的Packages与Sources、Contents文件')
     for release in source_releases:
         for fn, packages in release.all_packages.items() + release.all_sources.items():
             for pkg in packages:
                 if pkg == best_versions[pkg_key(pkg, packages.arch)]:
+                    if with_contents:
+                        contents_fn = 'Contents-' + packages.arch
+                        source_contents = release.all_contents.get(contents_fn)
+                        if source_contents:
+                            try:
+                                contents = new_contents.get(contents_fn)
+                                pkg_fullname = source_contents.package_fullnames[pkg.name]
+                                files = source_contents.packages[pkg.name]
+                                contents.add_package(pkg_fullname, files)
+                            except:
+                                logger.warning(
+                                    'Contents of %s:%s not found', pkg.name, pkg.arch)
                     new_packages[fn][pkg.name] = pkg
 
     # 保存Packages文件
-    for packages in new_packages.itervalues():
+    for packages in new_packages.values():
         packages.write()
+    # 保存Contents文件
+    if with_contents:
+        for contents in new_contents.values():
+            contents.write()
 
     # 生成release文件
     logger.info('生成合并后的Release文件')
@@ -137,6 +167,7 @@ def main(argv=None):
           target=args['--target'],
           policy=args['--policy'],
           binary=args['--binary'],
-          force=args['--force']
+          force=args['--force'],
+          with_contents=args['--contents']
           )
     return 0
