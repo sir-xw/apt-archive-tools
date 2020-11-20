@@ -7,6 +7,9 @@ Created on 2017-2-22
 '''
 import os
 import sys
+import tempfile
+
+import sqlite3
 try:
     from collections import OrderedDict
 except ImportError:
@@ -128,7 +131,7 @@ class Release(object):
         elif name == 'Contents':
             index_list = self.contents_files
             pattern = re.compile(r'^Contents-\w+(\.gz){0,1}$')
-            index_class = Contents
+            index_class = ContentsInDB
         else:
             raise NotImplementedError()
 
@@ -175,8 +178,8 @@ class Release(object):
             'rm -f "%(top)s"/InRelease "%(top)s"/Release.gpg "%(top)s"/Release' % {'top': topdir})
 
         content = os.popen('apt-ftparchive -c %(conf)s release %(top)s --contents' % {'conf': tmpconf,
-                                                                           'top': topdir
-                                                                           }
+                                                                                      'top': topdir
+                                                                                      }
                            ).read()
         with open(os.path.join(topdir, 'Release'), 'w') as f:
             f.write(content)
@@ -455,13 +458,6 @@ class Contents(object):
         obj._parse()
         return obj
 
-    @staticmethod
-    def parse_package_name(packages):
-        """
-        utils/busybox,shells/busybox-static -> ['busybox', 'busybox-static']
-        """
-        return [p.split('/')[-1] for p in packages.split(',')]
-
     def _parse(self):
         if self.filepath.endswith('.gz'):
             import gzip
@@ -499,7 +495,6 @@ class Contents(object):
                 packages = self.files[filename]
                 f.write(filename + '\t' * 5 + ','.join(packages) + '\n')
         self.zip_contents(filepath)
-        os.unlink(filepath)
 
     @staticmethod
     def zip_contents(contents_file, content=None):
@@ -533,6 +528,135 @@ class Contents(object):
         self.packages[package_name] = file_list
         for file_name in file_list:
             self.files[file_name].add(package)
+
+
+class ContentsInDB(object):
+    """
+    利用sqlite db保存Contents信息
+    """
+
+    def __init__(self, filepath, arch=''):
+        """
+        filepath like [path-to]/Contents-[arch]
+        """
+        self.dbfile = tempfile.mktemp(suffix='.db')
+        self.db = sqlite3.connect(self.dbfile)
+        # self.db.text_factory = str
+        self.filepath = filepath
+        self.arch = arch or os.path.splitext(filepath)[0].split('-')[-1]
+
+    def _create_table(self):
+        cu = self.db.cursor()
+        cu.execute('create table file (file ntext, package_name, package)')
+        self.db.commit()
+
+    @staticmethod
+    def parse(contents_file):
+        obj = ContentsInDB(contents_file)
+        obj._parse()
+        return obj
+
+    def _parse(self):
+        if self.filepath.endswith('.gz'):
+            import gzip
+            f = gzip.open(self.filepath, 'rb')
+            self.filepath = self.filepath.rsplit('.', 1)[0]
+        else:
+            f = open(self.filepath, 'rb')
+        self._create_table()
+        while 1:
+            line = f.readline().strip('\n')
+            if not line:
+                break
+            self._parse_line(line)
+        self.db.commit()
+        f.close()
+
+    def _parse_line(self, line):
+        """
+        导入Contents文件中的一行数据
+        """
+        filename, packages = line.rsplit(None, 1)
+        cu = self.db.cursor()
+        for package in packages.split(','):
+            package_name = package.split('/')[-1]
+            cu.execute("insert into file values (?,?,?)",
+                       (filename.decode('latin-1'),
+                        package_name,
+                        package
+                        ))
+
+    def write(self, newpath=None, backup=''):
+        """
+        文件-包的对应关系列表写入Contents，并生成Contents.gz
+        """
+        filepath = newpath or self.filepath
+        # create a origin backup
+        if backup and os.path.exists(filepath):
+            os.rename(filepath, filepath + '.' + backup)
+        # write new
+        with open(filepath, 'wb') as f:
+            cur = self.db.cursor()
+            cur.execute('select * from file order by file')
+            last_file = ''
+            while 1:
+                row = cur.fetchone()
+                if not row:
+                    break
+                filename = row[0].encode('latin-1')
+                if filename != last_file:
+                    if last_file:
+                        f.write('\n')
+                    f.write(filename + '\t' * 5 + row[2].encode('latin-1'))
+                    last_file = filename
+                else:
+                    f.write(',' + row[2])
+            f.write('\n')
+        self.zip_contents(filepath)
+
+    @staticmethod
+    def zip_contents(contents_file, content=None):
+        """
+        根据Contents生成Contents.gz
+        """
+        if not content:
+            with open(contents_file, 'rb') as f:
+                content = f.read()
+        # gz and bz2
+        import gzip
+        zfile = gzip.open(contents_file + '.gz', mode='wb')
+        zfile.write(content)
+        zfile.close()
+
+    def remove_package(self, package):
+        cur = self.db.cursor()
+        cur.execute('delete from file where package_name=?', (package,))
+        self.db.commit()
+
+    def remove_file(self, filename):
+        cur = self.db.cursor()
+        cur.execute('delete from file where file=?', (filename,))
+        self.db.commit()
+
+    def add_package(self, package, file_list):
+        package_name = package.split('/')[-1]
+        cur = self.db.cursor()
+        for filename in file_list:
+            cur.execute('insert into file values (?,?,?)',
+                        (filename, package_name, package))
+        self.db.commit()
+
+    def files_of_package(self, package_name):
+        cur = self.db.cursor()
+        cur.execute('select * from file where package_name=?', (package_name,))
+        return cur.fetchall()
+
+    def __del__(self):
+        """
+        自动删除临时数据库
+        """
+        self.db.close()
+        os.unlink(self.dbfile)
 
 
 def strip_packages(packagesfile):

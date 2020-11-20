@@ -33,7 +33,6 @@ options:
 import os
 from ..contrib import docopt
 from . import utils
-import re
 
 import logging
 
