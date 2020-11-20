@@ -340,6 +340,10 @@ class Package(PY3__cmp__, object):
     def md5sum(self):
         return self.data['MD5sum']
 
+    @property
+    def size(self):
+        return int(self.data['Size'])
+
     def __str__(self):
         return self.text
 
