@@ -15,7 +15,7 @@ Usage: archive_man check <dir> [-s <suite>] [-m|--size]
 dir: 软件源目录，里面应该有dists和软件包目录（通常取名为pool）
 
 options:
-   -s, --suite=<suite>         仅仅检查指定系列的索引中缺失的文件
+   -s, --suite=<suite>         仅仅检查指定系列的索引中缺失的文件（未实装）
    -m, --md5                   检查仓库文件的md5是否与索引文件中一致
                                不一致的以前缀 ! 输出
    --size                      检查size而不是md5，节省时间
