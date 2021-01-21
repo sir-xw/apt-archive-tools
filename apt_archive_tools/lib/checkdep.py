@@ -97,8 +97,8 @@ def checkdep(topdir, extra, ignore_noexist=False, ge_only=False):
                                     raise DependMatch()
                 except DependMatch:
                     continue
-                logger.error('%s:%s(%s) 有未满足的依赖:%s' %
-                             (pkg.name, pkg.arch, pkg.version, dep_group))
+                logger.error('%s:%s(%s) [source:%s] 有未满足的依赖:%s' %
+                             (pkg.name, pkg.arch, pkg.version, pkg.source, dep_group))
     return True
 
 
