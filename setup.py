@@ -43,5 +43,8 @@ setuptools.setup(
             'checkdep = apt_archive_tools.lib.checkdep:main',
             'rename = apt_archive_tools.lib.rename:main'
         ]
-    }
+    },
+    install_requires=[
+       "requests",
+    ],
 )
