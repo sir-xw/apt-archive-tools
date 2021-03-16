@@ -183,7 +183,7 @@ class Release(object):
                            ).read()
         with open(os.path.join(topdir, 'Release'), 'w') as f:
             f.write(content)
-
+        # remove Packages and Sources
         from .sign import sign_file
         sign_file(topdir)
         return
@@ -247,25 +247,21 @@ class Packages(object):
     @staticmethod
     def zip_packages(packagesfile, content=None):
         """
-        根据Packages生成Packages.gz,Packages.bz2
+        根据Packages生成Packages.gz
         """
         if not content:
             with open(packagesfile, 'rb') as f:
                 content = f.read()
-        # gz and bz2
+        # gz
         import gzip
         zfile = gzip.open(packagesfile + '.gz', mode='wb')
         zfile.write(content)
         zfile.close()
-        import bz2
-        bzfile = bz2.BZ2File(packagesfile + '.bz2', 'wb')
-        bzfile.write(content)
-        bzfile.close()
         return
 
     def write(self, newpath=None, backup=''):
         """
-        包列表写入Packages，并生成Packages.gz,Packages.bz2
+        包列表写入Packages，并生成Packages.gz
         """
         filepath = newpath or self.filepath
         # create a origin backup
@@ -275,6 +271,11 @@ class Packages(object):
         with open(filepath, 'w') as f:
             for pkg_name in sorted(self.data.keys()):
                 f.write(str(self.data[pkg_name]) + '\n\n')
+        # remove compressed
+        for ext in ['.gz', '.bz2', '.xz']:
+            compressed_file = filepath + ext
+            if os.path.exists(compressed_file):
+                os.unlink(compressed_file)
         self.zip_packages(filepath)
         return
 
@@ -626,7 +627,7 @@ class ContentsInDB(object):
         if not content:
             with open(contents_file, 'rb') as f:
                 content = f.read()
-        # gz and bz2
+        # gz
         import gzip
         zfile = gzip.open(contents_file + '.gz', mode='wb')
         zfile.write(content)

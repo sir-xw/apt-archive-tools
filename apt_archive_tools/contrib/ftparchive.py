@@ -133,8 +133,6 @@ CLEANUP_FREQUENCY = 60 * 60 * 24
 COMPRESSOR_TO_CONFIG = {
     '': '.',
     'gz': 'gzip',
-    'bz2': 'bzip2',
-    'xz': 'xz'
 }
 
 
