@@ -70,14 +70,12 @@ def read_url(url):
         url = url[7:]
     if '://' not in url:
         # as file
-        return open(url).read()
+        return open(url, 'rb').read()
     else:
-        if PY3:
-            import urllib.request as urllib
-        else:
-            import urllib
-        f = urllib.urlopen(url)
-        return f.read()
+        res_temp = requests.get(url, stream=True)
+        state_tag = res_temp.status_code
+        if state_tag == 200:
+            return res_temp.raw.read()
 
 
 class Release(object):
@@ -145,8 +143,6 @@ class Release(object):
         if index_list:
             return
         for fn in self.files:
-            if fn == "Packages.gz" or fn == "Packages":
-                pass
             match = pattern.match(os.path.basename(fn))
             if match:
                 if match.groups()[0] == '.gz':
@@ -161,9 +157,10 @@ class Release(object):
             if fn in index_list:
                 # 已经统计的
                 continue
-            url_tag = re.findall(r"^((https?|ftp)://|(www|ftp)\.)[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+([/?].*)?$", fpath)
+            url_tag = re.findall(
+                r"^((https?|ftp)://|(www|ftp)\.)[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+([/?].*)?$", fpath)
             if url_tag:
-                res_temp = requests.get(fpath)
+                res_temp = requests.head(fpath)
                 state_tag = res_temp.status_code
                 if state_tag == 200:
                     index_list[fn] = index_class.parse(fpath)
@@ -236,29 +233,21 @@ class Packages(object):
         self.data = {}
 
     def _read(self):
-        if not re.findall(r"^((https?|ftp)://|(www|ftp)\.)[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+([/?].*)?$", self.filepath):
-            if self.filepath.endswith('.gz'):
-                import gzip
-                f = gzip.open(self.filepath)
-                self.filepath = self.filepath.rsplit('.', 1)[0]
-            else:
-                f = open(self.filepath, 'r')
-            read_temp_data = f.read()
-            f.close()
-            return read_temp_data
+        read_temp_data = read_url(self.filepath)
+        if self.filepath.endswith('.gz'):
+            import gzip
+            self.filepath = self.filepath.rsplit('.', 1)[0]
+            data = gzip.GzipFile(fileobj=BytesIO(read_temp_data)).read()
         else:
-            res_temp = requests.get(self.filepath)
-            state_tag = res_temp.status_code
-            if state_tag == 200:
-                return res_temp.content
+            data = read_temp_data
+
+        if PY3:
+            return data.decode('utf-8')
+        else:
+            return data
 
     def _parse(self):
         temp = self._read()
-        if not isinstance(temp, str):
-            try:
-                temp = temp.decode()
-            except:
-                temp = gzip.GzipFile(fileobj=BytesIO(temp)).read().decode()
         sections = temp.strip().split('\n\n')
         for section in sections:
             if not section.strip():
@@ -412,44 +401,14 @@ class Package(PY3__cmp__, object):
 
 class Sources(Packages):
 
-    def _read(self):
-        if not re.findall(r"^((https?|ftp)://|(www|ftp)\.)[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+([/?].*)?$", self.filepath):
-            if self.filepath.endswith('.gz'):
-                import gzip
-                f = gzip.open(self.filepath)
-                self.filepath = self.filepath.rsplit('.', 1)[0]
-            else:
-                f = open(self.filepath, 'r')
-            read_temp_data = f.read()
-            f.close()
-            return read_temp_data
-        else:
-            res_temp = requests.get(self.filepath)
-            state_tag = res_temp.status_code
-            if state_tag == 200:
-                return res_temp.content
-
     def _parse(self):
-        # if self.filepath.endswith('.gz'):
-        #     import gzip
-        #     f = gzip.open(self.filepath)
-        #     self.filepath = self.filepath.rsplit('.', 1)[0]
-        # else:
-        #     f = open(self.filepath)
-        # temp = f.read()
         temp = self._read()
-        if not isinstance(temp, str):
-            try:
-                temp = temp.decode()
-            except:
-                temp = gzip.GzipFile(fileobj=BytesIO(temp)).read().decode()
         sections = temp.strip().split('\n\n')
         for section in sections:
             if not section.strip():
                 continue
             source = Source(section)
             self.data[source.name] = source
-        # f.close()
         return self.data
 
     @staticmethod
