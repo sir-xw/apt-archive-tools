@@ -133,8 +133,6 @@ CLEANUP_FREQUENCY = 60 * 60 * 24
 COMPRESSOR_TO_CONFIG = {
     '': '.',
     'gz': 'gzip',
-    'bz2': 'bzip2',
-    'xz': 'xz'
 }
 
 
@@ -246,7 +244,10 @@ class FTPArchiveHandler:
         for folder, _dirlist, filelist in os.walk(self.pool):
             for filename in filelist:
                 filepath = os.path.join(folder, filename)
-                ext = filename.rsplit('.', 1)[1]
+                try:
+                    ext = filename.rsplit('.', 1)[1]
+                except:
+                    continue
                 subcomp = EXT_TO_SUBCOMPONENT.get(ext)
                 if subcomp != None:
                     self.subcomponents.add(subcomp)

@@ -15,7 +15,7 @@ Usage: archive_man check <dir> [-s <suite>] [-m|--size]
 dir: 软件源目录，里面应该有dists和软件包目录（通常取名为pool）
 
 options:
-   -s, --suite=<suite>         仅仅检查指定系列的索引中缺失的文件（未实装）
+   -s, --suite=<suite>         仅仅检查指定系列的索引中缺失的文件
    -m, --md5                   检查仓库文件的md5是否与索引文件中一致
                                不一致的以前缀 ! 输出
    --size                      检查size而不是md5，节省时间
@@ -33,7 +33,6 @@ logger = logging.getLogger('archive_man')
 
 
 def check(topdir, suite=None, check_md5=False, check_size=False):
-    # TODO: check single suite
     index_dir = os.path.join(topdir, 'dists')
     if not os.path.isdir(index_dir):
         logger.error('%s 不是一个软件源目录', topdir)
@@ -43,18 +42,30 @@ def check(topdir, suite=None, check_md5=False, check_size=False):
     P_files = set()
     S_files = set()
     pool_files = set()
-    for folder, _, subfiles in os.walk(topdir):
+    symlinks = {}
+
+    # all index files
+    for folder, _, subfiles in os.walk(index_dir):
+        if suite and folder.replace(index_dir+'/', '').split('/')[0] != suite:
+            continue
         for subfile in subfiles:
-            if folder.startswith(index_dir):
-                if subfile == 'Packages':
-                    filelist = P_files
-                elif subfile == 'Sources':
-                    filelist = S_files
-                else:
-                    continue
+            if subfile == 'Packages':
+                P_files.add(os.path.join(folder, subfile))
+            elif subfile == 'Sources':
+                S_files.add(os.path.join(folder, subfile))
             else:
-                filelist = pool_files
-            filelist.add(os.path.join(folder, subfile))
+                continue
+
+    # all pool files
+    if not suite:
+        for folder, _, subfiles in os.walk(topdir):
+            if folder.startswith(index_dir):
+                continue
+            for subfile in subfiles:
+                filepath = os.path.join(folder, subfile)
+                pool_files.add(filepath)
+                if os.path.islink(filepath):
+                    symlinks[filepath] = os.path.realpath(filepath)
 
     hash_table = {}
     size_table = {}
@@ -62,29 +73,60 @@ def check(topdir, suite=None, check_md5=False, check_size=False):
     for filepath in P_files:
         for package in utils.Packages.parse(filepath):
             package_abs_path = os.path.join(topdir, package.filename)
-            hash_table[package_abs_path] = package.md5sum
-            size_table[package_abs_path] = package.size
+            if check_md5:
+                # 检查不同索引文件中是否有同名文件不一致
+                old_md5sum = hash_table.get(package_abs_path)
+                if old_md5sum and package.md5sum != old_md5sum:
+                    logger.error('hash of %s differ in index files', package_abs_path)
+                hash_table[package_abs_path] = package.md5sum
+            if check_size:
+                # 检查不同索引文件中是否有同名文件不一致
+                old_size = size_table.get(package_abs_path)
+                if old_size and package.size != old_size:
+                    logger.error('size of %s differ in index files', package_abs_path)
+                size_table[package_abs_path] = package.size
             keep_list.add(package_abs_path)
-            if os.path.islink(package_abs_path):
-                # 链接目标保留
-                keep_list.add(os.path.realpath(package_abs_path))
+            # 链接目标保留
+            try:
+                keep_list.add(symlinks[package_abs_path])
+            except:
+                pass
     for filepath in S_files:
         for source in utils.Sources.parse(filepath):
             for md5sum, size, filepath in source.fileinfos:
                 source_abs_path = os.path.join(topdir, filepath)
-                hash_table[source_abs_path] = md5sum
-                size_table[source_abs_path] = size
+                if check_md5:
+                    old_md5sum = hash_table.get(source_abs_path)
+                    if old_md5sum and md5sum != old_md5sum:
+                        logger.error('hash of %s differ in index files', source_abs_path)
+                    hash_table[source_abs_path] = md5sum
+                if check_size:
+                    old_size = size_table.get(source_abs_path)
+                    if old_size and size != old_size:
+                        logger.error('size of %s differ in index files', source_abs_path)
+                    size_table[source_abs_path] = size
                 keep_list.add(source_abs_path)
-                if os.path.islink(source_abs_path):
-                    # 链接目标保留
-                    keep_list.add(os.path.realpath(source_abs_path))
+                # 链接目标保留
+                try:
+                    keep_list.add(symlinks[source_abs_path])
+                except:
+                    pass
 
-    # 对比
-    for filepath in pool_files - keep_list:
-        print('+', filepath)
+    logger.info('Finished reading index')
 
-    for filepath in keep_list - pool_files:
-        print('-', filepath)
+    if suite:
+        for filepath in keep_list:
+            if os.path.exists(filepath):
+                pool_files.add(filepath)
+            else:
+                print('-', filepath)
+    else:
+        # 对比
+        for filepath in pool_files - keep_list:
+            print('+', filepath)
+
+        for filepath in keep_list - pool_files:
+            print('-', filepath)
 
     if check_md5:
         for filepath, md5sum in hash_table.items():

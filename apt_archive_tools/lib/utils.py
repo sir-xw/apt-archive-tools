@@ -70,14 +70,12 @@ def read_url(url):
         url = url[7:]
     if '://' not in url:
         # as file
-        return open(url).read()
+        return open(url, 'rb').read()
     else:
-        if PY3:
-            import urllib.request as urllib
-        else:
-            import urllib
-        f = urllib.urlopen(url)
-        return f.read()
+        res_temp = requests.get(url, stream=True)
+        state_tag = res_temp.status_code
+        if state_tag == 200:
+            return res_temp.raw.read()
 
 
 class Release(object):
@@ -145,8 +143,6 @@ class Release(object):
         if index_list:
             return
         for fn in self.files:
-            if fn == "Packages.gz" or fn == "Packages":
-                pass
             match = pattern.match(os.path.basename(fn))
             if match:
                 if match.groups()[0] == '.gz':
@@ -161,9 +157,10 @@ class Release(object):
             if fn in index_list:
                 # 已经统计的
                 continue
-            url_tag = re.findall(r"^((https?|ftp)://|(www|ftp)\.)[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+([/?].*)?$", fpath)
+            url_tag = re.findall(
+                r"^((https?|ftp)://|(www|ftp)\.)[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+([/?].*)?$", fpath)
             if url_tag:
-                res_temp = requests.get(fpath)
+                res_temp = requests.head(fpath)
                 state_tag = res_temp.status_code
                 if state_tag == 200:
                     index_list[fn] = index_class.parse(fpath)
@@ -199,7 +196,7 @@ class Release(object):
                            ).read()
         with open(os.path.join(topdir, 'Release'), 'w') as f:
             f.write(content)
-
+        # remove Packages and Sources
         from .sign import sign_file
         sign_file(topdir)
         return
@@ -236,29 +233,21 @@ class Packages(object):
         self.data = {}
 
     def _read(self):
-        if not re.findall(r"^((https?|ftp)://|(www|ftp)\.)[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+([/?].*)?$", self.filepath):
-            if self.filepath.endswith('.gz'):
-                import gzip
-                f = gzip.open(self.filepath)
-                self.filepath = self.filepath.rsplit('.', 1)[0]
-            else:
-                f = open(self.filepath, 'r')
-            read_temp_data = f.read()
-            f.close()
-            return read_temp_data
+        read_temp_data = read_url(self.filepath)
+        if self.filepath.endswith('.gz'):
+            import gzip
+            self.filepath = self.filepath.rsplit('.', 1)[0]
+            data = gzip.GzipFile(fileobj=BytesIO(read_temp_data)).read()
         else:
-            res_temp = requests.get(self.filepath)
-            state_tag = res_temp.status_code
-            if state_tag == 200:
-                return res_temp.content
+            data = read_temp_data
+
+        if PY3:
+            return data.decode('utf-8')
+        else:
+            return data
 
     def _parse(self):
         temp = self._read()
-        if not isinstance(temp, str):
-            try:
-                temp = temp.decode()
-            except:
-                temp = gzip.GzipFile(fileobj=BytesIO(temp)).read().decode()
         sections = temp.strip().split('\n\n')
         for section in sections:
             if not section.strip():
@@ -279,25 +268,21 @@ class Packages(object):
     @staticmethod
     def zip_packages(packagesfile, content=None):
         """
-        根据Packages生成Packages.gz,Packages.bz2
+        根据Packages生成Packages.gz
         """
         if not content:
             with open(packagesfile, 'rb') as f:
                 content = f.read()
-        # gz and bz2
+        # gz
         import gzip
         zfile = gzip.open(packagesfile + '.gz', mode='wb')
         zfile.write(content)
         zfile.close()
-        import bz2
-        bzfile = bz2.BZ2File(packagesfile + '.bz2', 'wb')
-        bzfile.write(content)
-        bzfile.close()
         return
 
     def write(self, newpath=None, backup=''):
         """
-        包列表写入Packages，并生成Packages.gz,Packages.bz2
+        包列表写入Packages，并生成Packages.gz
         """
         filepath = newpath or self.filepath
         # create a origin backup
@@ -307,6 +292,11 @@ class Packages(object):
         with open(filepath, 'w') as f:
             for pkg_name in sorted(self.data.keys()):
                 f.write(str(self.data[pkg_name]) + '\n\n')
+        # remove compressed
+        for ext in ['.gz', '.bz2', '.xz']:
+            compressed_file = filepath + ext
+            if os.path.exists(compressed_file):
+                os.unlink(compressed_file)
         self.zip_packages(filepath)
         return
 
@@ -411,44 +401,14 @@ class Package(PY3__cmp__, object):
 
 class Sources(Packages):
 
-    def _read(self):
-        if not re.findall(r"^((https?|ftp)://|(www|ftp)\.)[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+([/?].*)?$", self.filepath):
-            if self.filepath.endswith('.gz'):
-                import gzip
-                f = gzip.open(self.filepath)
-                self.filepath = self.filepath.rsplit('.', 1)[0]
-            else:
-                f = open(self.filepath, 'r')
-            read_temp_data = f.read()
-            f.close()
-            return read_temp_data
-        else:
-            res_temp = requests.get(self.filepath)
-            state_tag = res_temp.status_code
-            if state_tag == 200:
-                return res_temp.content
-
     def _parse(self):
-        # if self.filepath.endswith('.gz'):
-        #     import gzip
-        #     f = gzip.open(self.filepath)
-        #     self.filepath = self.filepath.rsplit('.', 1)[0]
-        # else:
-        #     f = open(self.filepath)
-        # temp = f.read()
         temp = self._read()
-        if not isinstance(temp, str):
-            try:
-                temp = temp.decode()
-            except:
-                temp = gzip.GzipFile(fileobj=BytesIO(temp)).read().decode()
         sections = temp.strip().split('\n\n')
         for section in sections:
             if not section.strip():
                 continue
             source = Source(section)
             self.data[source.name] = source
-        # f.close()
         return self.data
 
     @staticmethod
@@ -683,7 +643,7 @@ class ContentsInDB(object):
         if not content:
             with open(contents_file, 'rb') as f:
                 content = f.read()
-        # gz and bz2
+        # gz
         import gzip
         zfile = gzip.open(contents_file + '.gz', mode='wb')
         zfile.write(content)
