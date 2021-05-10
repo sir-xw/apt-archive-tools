@@ -75,7 +75,7 @@ def read_url(url):
         res_temp = requests.get(url, stream=True)
         state_tag = res_temp.status_code
         if state_tag == 200:
-            return res_temp.raw.read()
+            return res_temp.content
 
 
 class Release(object):
@@ -94,7 +94,7 @@ class Release(object):
     def _parse(self):
         self.content = read_url(self.filepath)
         if isinstance(self.content, bytes):
-            self.content = self.content.decode()
+            self.content = self.content.decode('utf-8')
         for k, v in re.findall(r'(\w+): ?(.+$)', self.content, re.M):
             self.data[k] = v
 
@@ -183,7 +183,9 @@ class Release(object):
         # write conf
         import tempfile
         tmpconf = tempfile.mktemp('.conf')
-        with open(tmpconf, 'w') as f:
+        with open(tmpconf, 'wb') as f:
+            if not isinstance(conf, bytes):
+                conf = conf.encode('utf-8')
             f.write(conf)
         # generate Release
         topdir = os.path.dirname(self.filepath)
@@ -237,7 +239,10 @@ class Packages(object):
         if self.filepath.endswith('.gz'):
             import gzip
             self.filepath = self.filepath.rsplit('.', 1)[0]
-            data = gzip.GzipFile(fileobj=BytesIO(read_temp_data)).read()
+            try:
+                data = gzip.GzipFile(fileobj=BytesIO(read_temp_data)).read()
+            except:
+                data = read_temp_data
         else:
             data = read_temp_data
 
@@ -479,17 +484,29 @@ class Contents(object):
         obj._parse()
         return obj
 
-    def _parse(self):
+    def _read(self):
+        read_temp_data = read_url(self.filepath)
         if self.filepath.endswith('.gz'):
             import gzip
-            f = gzip.open(self.filepath)
             self.filepath = self.filepath.rsplit('.', 1)[0]
+            try:
+                data = gzip.GzipFile(fileobj=BytesIO(read_temp_data)).read()
+            except:
+                data = read_temp_data
         else:
-            f = open(self.filepath)
-        lines = f.read().strip('\n').split('\n')
-        for line in lines:
+            data = read_temp_data
+
+        if PY3:
+            return data.decode('utf-8')
+        else:
+            return data
+
+    def _parse(self):
+        temp = self._read()
+        for line in temp.split('\n'):
+            if not line:
+                break
             self._parse_line(line)
-        f.close()
 
     def _parse_line(self, line):
         """
@@ -577,21 +594,31 @@ class ContentsInDB(object):
         obj._parse()
         return obj
 
-    def _parse(self):
+    def _read(self):
+        read_temp_data = read_url(self.filepath)
         if self.filepath.endswith('.gz'):
             import gzip
-            f = gzip.open(self.filepath, 'rb')
             self.filepath = self.filepath.rsplit('.', 1)[0]
+            try:
+                data = gzip.GzipFile(fileobj=BytesIO(read_temp_data)).read()
+            except:
+                data = read_temp_data
         else:
-            f = open(self.filepath, 'rb')
+            data = read_temp_data
+
+        if PY3:
+            return data.decode('utf-8')
+        else:
+            return data
+
+    def _parse(self):
+        temp = self._read()
         self._create_table()
-        while 1:
-            line = f.readline().strip('\n')
+        for line in temp.split('\n'):
             if not line:
                 break
             self._parse_line(line)
         self.db.commit()
-        f.close()
 
     def _parse_line(self, line):
         """
