@@ -18,6 +18,8 @@ conf.read([os.path.join(os.path.dirname(__file__), 'default.conf'),
 
 GPGHOME = os.path.expanduser(conf.get('app', 'gpghome'))
 GPGKEYPASS = conf.get('app', 'gpgpass')
+if not GPGKEYPASS:
+    GPGKEYPASS = None
 
 options = {'suite': conf.get('options', 'suite'),
            'arch': conf.get('options', 'arch')
