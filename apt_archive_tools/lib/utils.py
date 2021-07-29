@@ -22,11 +22,9 @@ except ImportError:
 from collections import defaultdict
 
 import re
-pkg_fields = ['Package', 'Version', 'Architecture', 'Source',
-              'Filename', 'Depends', 'Pre-depends', 'Provides', 'MD5sum', 'Size']
-pkg_field_pattern = re.compile(r'^(?P<key>' + '|'.join(pkg_fields) + '): (?P<value>.+)',
+pkg_field_pattern = re.compile(r'^(?P<key>[^\s:]*): (?P<value>.+)',
                                re.M)
-src_field_pattern = re.compile(r'^(?P<key>Package|Version|Directory): (?P<value>.+)',
+src_field_pattern = re.compile(r'^(?P<key>[^\s:]*): (?P<value>.+)',
                                re.M)
 source_version_pattern = re.compile(r'(.+) \((.+)\)')
 files_pattern = re.compile(r'^ (\w{32})\s+(\d+) (.+)', re.M)
@@ -237,7 +235,6 @@ class Packages(object):
     def _read(self):
         read_temp_data = read_url(self.filepath)
         if self.filepath.endswith('.gz'):
-            import gzip
             self.filepath = self.filepath.rsplit('.', 1)[0]
             try:
                 data = gzip.GzipFile(fileobj=BytesIO(read_temp_data)).read()
@@ -279,7 +276,6 @@ class Packages(object):
             with open(packagesfile, 'rb') as f:
                 content = f.read()
         # gz
-        import gzip
         zfile = gzip.open(packagesfile + '.gz', mode='wb')
         zfile.write(content)
         zfile.close()
@@ -487,7 +483,6 @@ class Contents(object):
     def _read(self):
         read_temp_data = read_url(self.filepath)
         if self.filepath.endswith('.gz'):
-            import gzip
             self.filepath = self.filepath.rsplit('.', 1)[0]
             try:
                 data = gzip.GzipFile(fileobj=BytesIO(read_temp_data)).read()
@@ -543,7 +538,6 @@ class Contents(object):
             with open(contents_file, 'rb') as f:
                 content = f.read()
         # gz and bz2
-        import gzip
         zfile = gzip.open(contents_file + '.gz', mode='wb')
         zfile.write(content)
         zfile.close()
@@ -597,7 +591,6 @@ class ContentsInDB(object):
     def _read(self):
         read_temp_data = read_url(self.filepath)
         if self.filepath.endswith('.gz'):
-            import gzip
             self.filepath = self.filepath.rsplit('.', 1)[0]
             try:
                 data = gzip.GzipFile(fileobj=BytesIO(read_temp_data)).read()
@@ -671,7 +664,6 @@ class ContentsInDB(object):
             with open(contents_file, 'rb') as f:
                 content = f.read()
         # gz
-        import gzip
         zfile = gzip.open(contents_file + '.gz', mode='wb')
         zfile.write(content)
         zfile.close()
