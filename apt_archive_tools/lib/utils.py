@@ -89,6 +89,7 @@ class Release(object):
         self.sources_files = {}
         self.contents_files = {}
         self.hash_files = {}
+        self.files_hash = {}
 
     def _parse(self):
         self.content = read_url(self.filepath)
@@ -102,6 +103,7 @@ class Release(object):
 
         for md5sum, size, path in re.findall(files_pattern, self.content):
             self.hash_files[md5sum] = path
+            self.files_hash[path] = md5sum
 
         return
 
