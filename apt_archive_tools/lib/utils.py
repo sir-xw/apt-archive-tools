@@ -296,7 +296,7 @@ class Packages(object):
         if backup and os.path.exists(filepath):
             os.rename(filepath, filepath + '.' + backup)
         # write new
-        with open(filepath, 'w') as f:
+        with open(filepath, 'w', encoding='utf-8') as f:
             for pkg_name in sorted(self.data.keys()):
                 f.write(str(self.data[pkg_name]) + '\n\n')
         # remove compressed
