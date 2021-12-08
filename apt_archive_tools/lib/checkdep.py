@@ -107,8 +107,8 @@ def main(argv=None):
     check dependencies of packages in an archive
     """
     args = docopt.docopt(cmd_doc, argv, help=True, version='1.0')
-    checkdep(os.path.abspath(args['<suite>']),
-             [os.path.abspath(suite) for suite in args['--extra']],
+    checkdep(args['<suite>'],
+             args['--extra'],
              args['--ignore-noexist'],
              args['--ge-only']
              )
