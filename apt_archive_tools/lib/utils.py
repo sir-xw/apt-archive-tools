@@ -296,9 +296,14 @@ class Packages(object):
         if backup and os.path.exists(filepath):
             os.rename(filepath, filepath + '.' + backup)
         # write new
-        with open(filepath, 'w', encoding='utf-8') as f:
-            for pkg_name in sorted(self.data.keys()):
-                f.write(str(self.data[pkg_name]) + '\n\n')
+        if PY3:
+            with open(filepath, 'w', encoding='utf-8') as f:
+                for pkg_name in sorted(self.data.keys()):
+                    f.write(str(self.data[pkg_name]) + '\n\n')
+        else:
+            with open(filepath, 'w') as f:
+                for pkg_name in sorted(self.data.keys()):
+                    f.write(str(self.data[pkg_name]) + '\n\n')
         # remove compressed
         for ext in ['.gz', '.bz2', '.xz']:
             compressed_file = filepath + ext
