@@ -356,7 +356,7 @@ class Package(PY3__cmp__, object):
 
     @property
     def version(self):
-        return self.bianry_version
+        return self.data['Version']
     
     @property
     def source_version(self):
