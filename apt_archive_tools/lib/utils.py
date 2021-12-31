@@ -356,6 +356,10 @@ class Package(PY3__cmp__, object):
 
     @property
     def version(self):
+        return self.bianry_version
+    
+    @property
+    def source_version(self):
         return self.data['SourceVersion']
 
     @property
@@ -422,6 +426,10 @@ class Sources(Packages):
             source = Source(section)
             self.data[source.name] = source
         return self.data
+    
+    @property
+    def version(self):
+        return self.source_version
 
     @staticmethod
     def parse(sources_file):
@@ -722,7 +730,7 @@ def strip_packages(packagesfile):
 def file_hash(filepath, hash_name='md5'):
     import hashlib
     h = hashlib.new(hash_name)
-    f = open(filepath, 'r')
+    f = open(filepath, 'rb')
     while True:
         # 每次读取1M放到 data 中
         data = f.read(1024 * 1024)
