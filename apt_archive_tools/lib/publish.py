@@ -19,7 +19,7 @@ logger = logging.getLogger('archive_man')
 
 cmd_doc = """
 Usage:
-   archive_man publish <topdir> [-s <suite>] [-v <version>] [-a <architecture>...] [-d <description>] [--contents]
+   archive-man publish <topdir> [-s <suite>] [-v <version>] [-a <architecture>...] [-d <description>] [--contents]
 
 Options:
    -h, --help              show this help.

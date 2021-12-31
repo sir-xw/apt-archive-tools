@@ -8,7 +8,7 @@ Created on 2017-03-24
 
 cmd_doc = """
 检查软件源中是否存在依赖未满足的包
-Usage: archive_man checkdep <suite> [-e <dependency_suite>...] [--ignore-noexist] [--ge-only]
+Usage: archive-man checkdep <suite> [-e <dependency_suite>...] [--ignore-noexist] [--ge-only]
 
 suite: 软件源索引目录，里面应该有Release文件
 

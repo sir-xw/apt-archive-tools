@@ -7,7 +7,7 @@ Created on 2017-2-22
 '''
 
 cmd_doc = """
-Usage: archive_man merge [-d <topdir>] [-p <policy>] <source1> <source2>... -t <target> [-f] [-b] [-c]
+Usage: archive-man merge [-d <topdir>] [-p <policy>] <source1> <source2>... -t <target> [-f] [-b] [-c]
 
 source1: 第一个合并来源，应该是topdir中已存在的目录名
 source2: 第二个合并来源，应该是topdir中已存在的目录名
