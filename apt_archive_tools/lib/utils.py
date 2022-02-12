@@ -196,12 +196,11 @@ class Release(object):
         os.system(
             'rm -f "%(top)s"/InRelease "%(top)s"/Release.gpg "%(top)s"/Release' % {'top': topdir})
 
-        content = os.popen('apt-ftparchive -c %(conf)s release %(top)s --contents' % {'conf': tmpconf,
-                                                                                      'top': topdir
-                                                                                      }
-                           ).read()
-        with open(os.path.join(topdir, 'Release'), 'w') as f:
-            f.write(content)
+        os.system('apt-ftparchive -c %(conf)s release %(top)s --contents > "%(release)s"' % {
+            'conf': tmpconf,
+            'top': topdir,
+            'release': os.path.join(topdir, 'Release')
+        })
         # remove Packages and Sources
         from .sign import sign_file
         sign_file(topdir)
