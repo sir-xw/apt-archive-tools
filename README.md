@@ -15,7 +15,7 @@
 ===
 如果是pip安装：
 
-    pip uninstall apt-tools-xiewei
+    pip uninstall apt-archive-tools
 
 如果是setup.py安装：
 

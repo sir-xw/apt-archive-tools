@@ -16,7 +16,7 @@ logger = logging.getLogger('archive_man')
 
 cmd_doc = """
 Usage:
-   archive_man copy <source> <destdir> -s <suite> [-a <arch>...] [-c <components>...]
+   archive-man copy <source> <destdir> -s <suite> [-a <arch>...] [-c <components>...]
 
 Options:
    -h, --help   show this help.

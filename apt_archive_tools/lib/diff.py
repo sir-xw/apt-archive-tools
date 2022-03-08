@@ -9,8 +9,8 @@ Created on 2017-2-22
 '''
 
 cmd_doc = """
-Usage: archive_man diff [-t <type>] [-f|-c] <source1> <source2>
-       archive_man diff -m <archive1> <archive2>
+Usage: archive-man diff [-t <type>] [-f|-c] <source1> <source2>
+       archive-man diff -m <archive1> <archive2>
 
 source1: 第一个对比目录，里面应该存在Release文件
 source2: 第二个对比目录，里面应该存在Release文件

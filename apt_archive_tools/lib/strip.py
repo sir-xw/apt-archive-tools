@@ -8,7 +8,7 @@ Created on 2017-03-24
 
 cmd_doc = """
 从软件源中删除已经不在dists索引里的包，减少其占用空间
-Usage: archive_man strip <dir> [-b <backupdir>] [-d] [-i] [-p <pattern>...] [-f <pattern-file>]
+Usage: archive-man strip <dir> [-b <backupdir>] [-d] [-i] [-p <pattern>...] [-f <pattern-file>]
 
 dir: 软件源目录，里面应该有dists和软件包目录（通常取名为pool）
 

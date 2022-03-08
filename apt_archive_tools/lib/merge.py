@@ -7,7 +7,7 @@ Created on 2017-2-22
 '''
 
 cmd_doc = """
-Usage: archive_man merge [-d <topdir>] [-p <policy>] <source1> <source2>... -t <target> [-f] [-b] [-c]
+Usage: archive-man merge [-d <topdir>] [-p <policy>] <source1> <source2>... -t <target> [-f] [-b] [-c]
 
 source1: 第一个合并来源，应该是topdir中已存在的目录名
 source2: 第二个合并来源，应该是topdir中已存在的目录名
@@ -65,6 +65,12 @@ def merge(topdir, froms, target, policy='version', binary=False, force=False, wi
         else:
             return pkg.source
 
+    def pkg_version(pkg):
+        if binary:
+            return pkg.version
+        else:
+            return pkg.source_version
+
     logger.info('开始选择发布的软件包')
     best_versions = {}
     # 首先得到所选择的包的版本号
@@ -77,7 +83,7 @@ def merge(topdir, froms, target, policy='version', binary=False, force=False, wi
                 old_version = this_versions.get(key, '')
                 if pkg <= old_version:
                     continue
-                this_versions[key] = pkg.version
+                this_versions[key] = pkg_version(pkg)
         # 然后按照指定策略更新至 best_version
         for key in this_versions:
             version = this_versions[key]
@@ -121,7 +127,7 @@ def merge(topdir, froms, target, policy='version', binary=False, force=False, wi
     for release in source_releases:
         for fn, packages in release.all_packages.items() + release.all_sources.items():
             for pkg in packages:
-                if pkg == best_versions[pkg_key(pkg, packages.arch)]:
+                if pkg_version(pkg) == best_versions[pkg_key(pkg, packages.arch)]:
                     if with_contents:
                         contents_fn = 'Contents-' + packages.arch
                         source_contents = release.all_contents.get(contents_fn)

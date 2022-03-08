@@ -8,7 +8,7 @@ Created on 2017-03-24
 
 cmd_doc = """
 检查软件源中是否存在依赖未满足的包
-Usage: archive_man checkdep <suite> [-e <dependency_suite>...] [--ignore-noexist] [--ge-only]
+Usage: archive-man checkdep <suite> [-e <dependency_suite>...] [--ignore-noexist] [--ge-only]
 
 suite: 软件源索引目录，里面应该有Release文件
 
@@ -107,8 +107,8 @@ def main(argv=None):
     check dependencies of packages in an archive
     """
     args = docopt.docopt(cmd_doc, argv, help=True, version='1.0')
-    checkdep(os.path.abspath(args['<suite>']),
-             [os.path.abspath(suite) for suite in args['--extra']],
+    checkdep(args['<suite>'],
+             args['--extra'],
              args['--ignore-noexist'],
              args['--ge-only']
              )

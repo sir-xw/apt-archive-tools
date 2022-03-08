@@ -8,8 +8,8 @@ Created on 2019-01-22
 
 cmd_doc = """
 修改软件源索引中的软件包路径，注意：默认不会移动对应路径的文件；源码文件重命名的操作有点复杂，暂不支持。
-Usage: archive_man rename <dir> <origin> <new> [-f]
-       archive_man rename <dir> --list=<file> [-f]
+Usage: archive-man rename <dir> <origin> <new> [-f]
+       archive-man rename <dir> --list=<file> [-f]
 
 dir:     软件源目录，里面应该有dists和软件包目录（通常取名为pool）
 origin:  需要修改的路径
