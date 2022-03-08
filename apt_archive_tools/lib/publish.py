@@ -98,6 +98,7 @@ Architectures "%(Architectures)s";
 Components "%(Components)s";
 Description "%(Description)s";
 };
+APT::FTPArchive::DoByHash yes;
 """ % data
     # write conf
     import tempfile
