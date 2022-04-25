@@ -16,7 +16,7 @@ logger = logging.getLogger('archive_man')
 
 cmd_doc = """
 Usage:
-   archive_man sign <file> [-p <password>]
+   archive-man sign <file> [-p <password>]
 
 Options:
    -h, --help  show this help

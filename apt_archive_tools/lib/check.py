@@ -10,7 +10,7 @@ Created on 2018-12-05
 
 cmd_doc = """
 检查dists索引里的软件包和pool中的deb文件列表是否一致，输出多余或缺失的deb包路径
-Usage: archive_man check <dir> [-s <suite>] [-m|--size]
+Usage: archive-man check <dir> [-s <suite>] [-m|--size]
 
 dir: 软件源目录，里面应该有dists和软件包目录（通常取名为pool）
 

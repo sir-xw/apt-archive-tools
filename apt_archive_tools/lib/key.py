@@ -19,9 +19,9 @@ logger = logging.getLogger('archive_man')
 
 cmd_doc = """
 Usage:
-   archive_man key import <keyfile> [-p <password>]
-   archive_man key delete <keyid>
-   archive_man key list
+   archive-man key import <keyfile> [-p <password>]
+   archive-man key delete <keyid>
+   archive-man key list
 
 Options:
    -h, --help                   show this help

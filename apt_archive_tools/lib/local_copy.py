@@ -16,7 +16,7 @@ logger = logging.getLogger('archive_man')
 
 cmd_doc = """
 Usage:
-   archive_man local-copy <source-dir> <dest-dir>
+   archive-man local-copy <source-dir> <dest-dir>
 
 Options:
    -h, --help   show this help

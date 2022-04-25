@@ -196,10 +196,14 @@ class Release(object):
         os.system(
             'rm -f "%(top)s"/InRelease "%(top)s"/Release.gpg "%(top)s"/Release' % {'top': topdir})
 
-        content = os.popen('apt-ftparchive -c %(conf)s release %(top)s --contents' % {'conf': tmpconf,
-                                                                                      'top': topdir
-                                                                                      }
-                           ).read()
+        temp_release = tempfile.mktemp()
+        os.system('apt-ftparchive -c %(conf)s release %(top)s --contents > "%(release)s"' % {
+            'conf': tmpconf,
+            'top': topdir,
+            'release': temp_release
+        })
+        with open(temp_release, 'r') as f:
+            content = f.read()
         match = re.search(r'\d{8}_\d+|\d{8}', self.filepath.split('/')[-2])
         if match:
             Hversion = match.group()
@@ -300,9 +304,14 @@ class Packages(object):
         if backup and os.path.exists(filepath):
             os.rename(filepath, filepath + '.' + backup)
         # write new
-        with open(filepath, 'w') as f:
-            for pkg_name in sorted(self.data.keys()):
-                f.write(str(self.data[pkg_name]) + '\n\n')
+        if PY3:
+            with open(filepath, 'w', encoding='utf-8') as f:
+                for pkg_name in sorted(self.data.keys()):
+                    f.write(str(self.data[pkg_name]) + '\n\n')
+        else:
+            with open(filepath, 'w') as f:
+                for pkg_name in sorted(self.data.keys()):
+                    f.write(str(self.data[pkg_name]) + '\n\n')
         # remove compressed
         for ext in ['.gz', '.bz2', '.xz']:
             compressed_file = filepath + ext
@@ -355,6 +364,10 @@ class Package(PY3__cmp__, object):
 
     @property
     def version(self):
+        return self.data['Version']
+
+    @property
+    def source_version(self):
         return self.data['SourceVersion']
 
     @property
@@ -421,6 +434,10 @@ class Sources(Packages):
             source = Source(section)
             self.data[source.name] = source
         return self.data
+
+    @property
+    def version(self):
+        return self.source_version
 
     @staticmethod
     def parse(sources_file):
@@ -721,7 +738,7 @@ def strip_packages(packagesfile):
 def file_hash(filepath, hash_name='md5'):
     import hashlib
     h = hashlib.new(hash_name)
-    f = open(filepath, 'r')
+    f = open(filepath, 'rb')
     while True:
         # 每次读取1M放到 data 中
         data = f.read(1024 * 1024)
