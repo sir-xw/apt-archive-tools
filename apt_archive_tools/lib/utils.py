@@ -202,14 +202,7 @@ class Release(object):
             'top': topdir,
             'release': temp_release
         })
-        with open(temp_release, 'r') as f:
-            content = f.read()
-        match = re.search(r'\d{8}_\d+|\d{8}', self.filepath.split('/')[-2])
-        if match:
-            Hversion = match.group()
-            content = 'Hversion: %s\n' % Hversion + content
-        with open(os.path.join(topdir, 'Release'), 'w') as f:
-            f.write(content)
+        os.rename(temp_release, os.path.join(topdir, 'Release'))
         # remove Packages and Sources
         from .sign import sign_file
         sign_file(topdir)
