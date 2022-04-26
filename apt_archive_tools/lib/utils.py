@@ -81,7 +81,7 @@ class Release(object):
     Release文件的内容，提供读取、保存等功能
     """
 
-    def __init__(self, filepath):
+    def __init__(self, filepath, extra_data={}):
         self.filepath = filepath
         self.data = OrderedDict()
         self.files = []
@@ -90,6 +90,7 @@ class Release(object):
         self.contents_files = {}
         self.hash_files = {}
         self.files_hash = {}
+        self.extra_data = extra_data
 
     def _parse(self):
         self.content = read_url(self.filepath)
@@ -196,11 +197,18 @@ class Release(object):
         os.system(
             'rm -f "%(top)s"/InRelease "%(top)s"/Release.gpg "%(top)s"/Release' % {'top': topdir})
 
+        temp_release = tempfile.mktemp()
         os.system('apt-ftparchive -c %(conf)s release %(top)s --contents > "%(release)s"' % {
             'conf': tmpconf,
             'top': topdir,
-            'release': os.path.join(topdir, 'Release')
+            'release': temp_release
         })
+        with open(temp_release, 'r') as f:
+            content = f.read()
+        for k, v in self.extra_data.items():
+            content = '%s: %s\n' % (k, v) + content
+        with open(os.path.join(topdir, 'Release'), 'w') as f:
+            f.write(content)
         # remove Packages and Sources
         from .sign import sign_file
         sign_file(topdir)
@@ -356,7 +364,7 @@ class Package(PY3__cmp__, object):
     @property
     def version(self):
         return self.data['Version']
-    
+
     @property
     def source_version(self):
         return self.data['SourceVersion']
@@ -425,7 +433,7 @@ class Sources(Packages):
             source = Source(section)
             self.data[source.name] = source
         return self.data
-    
+
     @property
     def version(self):
         return self.source_version
