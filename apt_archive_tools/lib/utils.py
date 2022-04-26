@@ -81,7 +81,7 @@ class Release(object):
     Release文件的内容，提供读取、保存等功能
     """
 
-    def __init__(self, filepath):
+    def __init__(self, filepath, extra_data={}):
         self.filepath = filepath
         self.data = OrderedDict()
         self.files = []
@@ -90,6 +90,7 @@ class Release(object):
         self.contents_files = {}
         self.hash_files = {}
         self.files_hash = {}
+        self.extra_data = extra_data
 
     def _parse(self):
         self.content = read_url(self.filepath)
@@ -202,7 +203,12 @@ class Release(object):
             'top': topdir,
             'release': temp_release
         })
-        os.rename(temp_release, os.path.join(topdir, 'Release'))
+        with open(temp_release, 'r') as f:
+            content = f.read()
+        for k, v in self.extra_data.items():
+            content = '%s: %s\n' % (k, v) + content
+        with open(os.path.join(topdir, 'Release'), 'w') as f:
+            f.write(content)
         # remove Packages and Sources
         from .sign import sign_file
         sign_file(topdir)
