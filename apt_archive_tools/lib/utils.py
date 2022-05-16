@@ -206,7 +206,10 @@ class Release(object):
         with open(temp_release, 'r') as f:
             content = f.read()
         for k, v in self.extra_data.items():
-            content = '%s: %s\n' % (k, v) + content
+            head = '%s: %s\n' % (k, v)
+            if not isinstance(head, bytes):
+                head = head.encode('utf-8')
+            content = head + content
         with open(os.path.join(topdir, 'Release'), 'w') as f:
             f.write(content)
         # remove Packages and Sources
