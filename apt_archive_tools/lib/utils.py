@@ -203,11 +203,14 @@ class Release(object):
             'top': topdir,
             'release': temp_release
         })
-        with open(temp_release, 'r') as f:
+        with open(temp_release, 'rb') as f:
             content = f.read()
         for k, v in self.extra_data.items():
-            content = '%s: %s\n' % (k, v) + content
-        with open(os.path.join(topdir, 'Release'), 'w') as f:
+            head = '%s: %s\n' % (k, v)
+            if not isinstance(head, bytes):
+                head = head.encode('utf-8')
+            content = head + content
+        with open(os.path.join(topdir, 'Release'), 'wb') as f:
             f.write(content)
         # remove Packages and Sources
         from .sign import sign_file
