@@ -183,7 +183,7 @@ class Release(object):
             if k == 'Date':
                 continue
             conf += '%s "%s";' % (k, v)
-        conf += '};'
+        conf += '};\nAPT::FTPArchive::DoByHash yes;'
 
         # write conf
         import tempfile
